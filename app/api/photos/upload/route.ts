@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { uploadImageToFolder } from '@/lib/googleDrive';
-import { detectLabelsFromContent } from '@/lib/vision';
+
 import sql from '@/lib/db';
 import { randomUUID } from 'crypto';
 
@@ -44,22 +44,21 @@ export async function POST(req: NextRequest) {
   let labels: string[] = [];
   if (base64Data) {
     const clean = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    const engLabels = await detectLabelsFromContent(clean);
-    labels = await (await import('@/lib/translate')).translateToChinese(engLabels);
+    labels = await (await import('@/lib/gemini')).geminiLabels(clean);
   }
 
   const [photo] = await sql`
-    INSERT INTO photos (file_id, name, unique_name, description, image_url)
-    VALUES (${uploaded.id}, ${uploaded.name}, ${uniqueName}, ${description}, ${imageUrl})
-    ON CONFLICT (file_id) DO NOTHING
-    RETURNING id;
-  `;
+      INSERT INTO photos (file_id, name, unique_name, description, image_url)
+      VALUES (${uploaded.id}, ${uploaded.name}, ${uniqueName}, ${description}, ${imageUrl})
+      ON CONFLICT (file_id) DO NOTHING
+      RETURNING id;
+    `;
 
-  if (photo?.id) {
-    for (const label of labels) {
-      await sql`INSERT INTO photo_labels (photo_id, label) VALUES (${photo.id}, ${label});`;
+    if (photo?.id) {
+      for (const label of labels) {
+        await sql`INSERT INTO photo_labels (photo_id, label) VALUES (${photo.id}, ${label});`;
+      }
     }
-  }
 
-  return NextResponse.json({ uploadedId: uploaded.id, labels });
-}
+    return NextResponse.json({ uploadedId: uploaded.id, labels });
+ }
