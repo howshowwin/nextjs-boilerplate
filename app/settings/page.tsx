@@ -61,7 +61,7 @@ export default function SettingsPage() {
         {
           icon: InformationCircleIcon,
           title: '應用程式資訊',
-          subtitle: '版本 1.0.0',
+          subtitle: '版本 1.0.1',
           action: () => {},
         },
       ],
