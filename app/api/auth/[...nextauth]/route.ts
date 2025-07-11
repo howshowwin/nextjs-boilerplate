@@ -1,6 +1,46 @@
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
+/**
+ * 刷新 Google Access Token
+ */
+async function refreshAccessToken(token: any) {
+  try {
+    const url = "https://oauth2.googleapis.com/token";
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+        refresh_token: token.refreshToken,
+      }),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) {
+      throw refreshedTokens;
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+    };
+  } catch (error) {
+    console.error("刷新 Access Token 失敗:", error);
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
+
 const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -33,20 +73,38 @@ const authOptions: NextAuthOptions = {
       return '/unauthorized';
     },
 
-    async jwt({ token, account }: { token: any; account?: any }) {
-      if (account) {
-        token.accessToken = account.access_token;
-        token.refreshToken = account.refresh_token;
+    async jwt({ token, account, user }) {
+      // 初次登入
+      if (account && user) {
+        return {
+          ...token,
+          accessToken: account.access_token,
+          refreshToken: account.refresh_token,
+          accessTokenExpires: account.expires_at ? account.expires_at * 1000 : Date.now() + 3600 * 1000,
+        };
       }
-      return token;
+
+      // 檢查 Access Token 是否即將過期（提前 5 分鐘刷新）
+      if (token.accessTokenExpires && Date.now() < Number(token.accessTokenExpires) - 5 * 60 * 1000) {
+        return token;
+      }
+
+      // Access Token 過期，嘗試刷新
+      console.log("Access Token 即將過期，開始刷新...");
+      return refreshAccessToken(token);
     },
 
-    async session({ session, token }: { session: any; token: any }) {
-      if (token?.accessToken) {
+    async session({ session, token }) {
+      if (token) {
         (session as any).accessToken = token.accessToken;
+        (session as any).refreshToken = token.refreshToken;
+        (session as any).error = token.error;
       }
       return session;
     },
+  },
+  pages: {
+    error: '/auth/error', // 自訂錯誤頁面
   },
 };
 

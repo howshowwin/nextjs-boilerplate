@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   Squares2X2Icon, 
@@ -19,6 +19,7 @@ import 'yet-another-react-lightbox/styles.css';
 import PhotoCard from '@/components/PhotoCard';
 import SearchBar from '@/components/SearchBar';
 import BottomNavigation from '@/components/BottomNavigation';
+import { uploadFile, handleAuthError } from '@/lib/auth-utils';
 
 interface Photo {
   id: number;
@@ -93,7 +94,7 @@ export default function PhotosPage() {
     setFilteredPhotos(results);
   }, [photos]);
 
-  // 上傳照片
+  // 上傳照片（使用新的 auth utils）
   const handleUpload = async (files: FileList) => {
     setUploading(true);
     setUploadTotal(files.length);
@@ -102,27 +103,22 @@ export default function PhotosPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('base64', base64);
-
-        await fetch('/api/photos/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        setUploadProgress(i + 1);
+        
+        try {
+          await uploadFile(file);
+          setUploadProgress(i + 1);
+        } catch (error) {
+          console.error(`上傳檔案 ${file.name} 失敗:`, error);
+          handleAuthError(error);
+          // 如果是授權錯誤，會自動導向錯誤頁面
+          // 其他錯誤繼續處理下一個檔案
+        }
       }
 
       await loadPhotos();
     } catch (error) {
-      console.error('上傳失敗:', error);
+      console.error('上傳過程發生錯誤:', error);
+      handleAuthError(error);
     } finally {
       setUploading(false);
     }
