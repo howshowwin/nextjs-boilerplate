@@ -212,3 +212,12 @@ body {
   font-weight: 500;
   display: inline-block;
 }
+
+/* --- 新增：模態框開啟時鎖定捲動並隱藏底部導航 --- */
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-open .bottom-nav {
+  transform: translateY(100%);
+}

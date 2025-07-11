@@ -19,7 +19,7 @@ export async function geminiLabels(base64: string): Promise<string[]> {
       model: "gemini-2.5-flash",
       contents: contents,
     });
-
+  
     const text = res.text?.trim();
     if (!text) {
       return [];

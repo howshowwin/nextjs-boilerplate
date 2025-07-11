@@ -43,6 +43,31 @@ export default function CalendarPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'month' | 'list'>('month');
 
+  // 避免 SSR/CSR 時區差異導致的 Hydration Mismatch
+  const [todayDateString, setTodayDateString] = useState('');
+  const [currentMonthStr, setCurrentMonthStr] = useState('');
+
+  // 避免 SSR/CSR 事件資料差異，只在客戶端渲染事件
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const today = new Date();
+    setTodayDateString(today.toDateString());
+    setCurrentMonthStr(currentDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' }));
+  }, [currentDate]);
+
+  // 當模態框開啟時，鎖定捲動並隱藏底部導航
+  useEffect(() => {
+    if (showEventModal) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+  }, [showEventModal]);
+
   // 載入事件
   useEffect(() => {
     loadEvents();
@@ -342,7 +367,7 @@ export default function CalendarPage() {
               </button>
               
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {currentDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long' })}
+                <span suppressHydrationWarning>{currentMonthStr}</span>
               </h2>
               
               <button
@@ -363,11 +388,11 @@ export default function CalendarPage() {
             </div>
 
             {/* 月曆格子 */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1" suppressHydrationWarning>
               {calendarDays.map((day, index) => {
                 const dayEvents = getDayEvents(day);
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-                const isToday = day.toDateString() === new Date().toDateString();
+                const isToday = todayDateString && day.toDateString() === todayDateString;
                 const isSelected = selectedDate && day.toDateString() === selectedDate.toDateString();
                 
                 return (
@@ -396,7 +421,7 @@ export default function CalendarPage() {
                     
                     {/* 事件指示器 */}
                     <div className="space-y-1 mt-1">
-                      {dayEvents.slice(0, 2).map((event, eventIndex) => (
+                      {isMounted && dayEvents.slice(0, 2).map((event, eventIndex) => (
                         <div
                           key={eventIndex}
                           onClick={(e) => {
@@ -416,7 +441,7 @@ export default function CalendarPage() {
                           <div className={`w-2 h-2 rounded-full ${getPriorityColor(event.priority)}`} />
                         </div>
                       ))}
-                      {dayEvents.length > 2 && (
+                      {isMounted && dayEvents.length > 2 && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
                           +{dayEvents.length - 2} 更多
                         </div>
@@ -429,14 +454,21 @@ export default function CalendarPage() {
           </>
         ) : (
           // 列表檢視
-          <div className="space-y-4">
-            {filteredEvents.length === 0 ? (
+          <div className="space-y-4" suppressHydrationWarning>
+            {!isMounted ? (
+              <div className="text-center py-8">
+                <div className="animate-pulse">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto mb-2"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mx-auto"></div>
+                </div>
+              </div>
+            ) : filteredEvents.length === 0 ? (
               <div className="text-center py-8">
                 <CalendarDaysIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">沒有找到符合條件的事件</p>
               </div>
             ) : (
-              filteredEvents.map((event) => (
+              isMounted && filteredEvents.map((event) => (
                 <div
                   key={event.id}
                   className={`
@@ -476,7 +508,7 @@ export default function CalendarPage() {
                       <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                         <div className="flex items-center space-x-1">
                           <CalendarDaysIcon className="w-4 h-4" />
-                          <span>{event.date.toLocaleDateString('zh-TW')}</span>
+                          <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
                         </div>
                         
                         {event.startTime && (

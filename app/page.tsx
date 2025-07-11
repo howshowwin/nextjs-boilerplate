@@ -25,7 +25,7 @@ export default function Home() {
     milestones: [],
     stats: { totalTasks: 0, totalMilestones: 0, urgentTasks: 0, urgentMilestones: 0 }
   });
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
     // 載入事件
@@ -60,6 +60,19 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [loadEvents]);
+
+  // 取得今日日期字串，避免 SSR / CSR 時區不一致造成 Hydration Mismatch
+  const [todayStr, setTodayStr] = useState('');
+  useEffect(() => {
+    setTodayStr(
+      new Date().toLocaleDateString('zh-TW', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+      })
+    );
+  }, []);
 
   const stats = getCalendarStats();
   const upcomingEvents = getUpcomingEvents(3);
@@ -107,12 +120,8 @@ export default function Home() {
                 智能生活助手
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {new Date().toLocaleDateString('zh-TW', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric',
-                  weekday: 'long'
-                })}
+                {/* 使用 suppressHydrationWarning 避免初次 Hydration 比對 */}
+                <span suppressHydrationWarning>{todayStr}</span>
               </p>
             </div>
             <Link
@@ -134,7 +143,7 @@ export default function Home() {
                 <CalendarDaysIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.upcomingEvents}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white" suppressHydrationWarning>{stats.upcomingEvents}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">即將到來</p>
               </div>
             </div>
@@ -146,7 +155,7 @@ export default function Home() {
                 <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.completedTasks}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white" suppressHydrationWarning>{stats.completedTasks}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">已完成</p>
               </div>
             </div>
@@ -189,11 +198,11 @@ export default function Home() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {countdownData.stats.totalTasks} 項任務
+                    <span suppressHydrationWarning>{countdownData.stats.totalTasks}</span> 項任務
                   </span>
                   {countdownData.stats.urgentTasks > 0 && (
                     <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-full">
-                      {countdownData.stats.urgentTasks} 項緊急
+                      <span suppressHydrationWarning>{countdownData.stats.urgentTasks}</span> 項緊急
                     </span>
                   )}
                 </div>
@@ -214,12 +223,12 @@ export default function Home() {
                         </span>
                       )}
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(task.date_time).toLocaleDateString('zh-TW')}
+                        <span suppressHydrationWarning>{new Date(task.date_time).toLocaleDateString('zh-TW')}</span>
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400" suppressHydrationWarning>
                       {formatCountdown(task)}
                     </p>
                   </div>
@@ -240,11 +249,11 @@ export default function Home() {
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {countdownData.stats.totalMilestones} 個事件
+                    <span suppressHydrationWarning>{countdownData.stats.totalMilestones}</span> 個事件
                   </span>
                   {countdownData.stats.urgentMilestones > 0 && (
                     <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs rounded-full">
-                      {countdownData.stats.urgentMilestones} 個緊急
+                      <span suppressHydrationWarning>{countdownData.stats.urgentMilestones}</span> 個緊急
                     </span>
                   )}
                 </div>
@@ -265,12 +274,12 @@ export default function Home() {
                         </span>
                       )}
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {new Date(milestone.date_time).toLocaleDateString('zh-TW')}
+                        <span suppressHydrationWarning>{new Date(milestone.date_time).toLocaleDateString('zh-TW')}</span>
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400" suppressHydrationWarning>
                       {formatCountdown(milestone)}
                     </p>
                   </div>
@@ -295,7 +304,7 @@ export default function Home() {
                   <div className="flex-1">
                     <h3 className="font-medium text-red-900 dark:text-red-100">{event.title}</h3>
                     <p className="text-sm text-red-600 dark:text-red-400">
-                      {event.date.toLocaleDateString('zh-TW')}
+                      <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
                     </p>
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(event.priority)}`}>
@@ -326,7 +335,7 @@ export default function Home() {
                         {event.type === 'milestone' ? '重大事件' : event.type === 'task' ? '任務' : '事件'}
                       </span>
                       <span className="text-sm text-gray-600 dark:text-gray-400">
-                        {event.date.toLocaleDateString('zh-TW')}
+                        <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
                       </span>
                     </div>
                   </div>

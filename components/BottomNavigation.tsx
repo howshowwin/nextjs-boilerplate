@@ -66,7 +66,9 @@ export default function BottomNavigation() {
       </button>
 
       {/* 底部導航 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 z-30">
+      <nav
+        className="bottom-nav fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-gray-200/50 dark:border-gray-800/50 z-30 transition-transform duration-300"
+      >
         <div className="flex justify-around items-center py-2 px-4 max-w-md mx-auto">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
