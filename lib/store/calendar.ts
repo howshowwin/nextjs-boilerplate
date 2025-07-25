@@ -131,7 +131,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      addEvent: async (eventData: Omit<CalendarEvent, 'id'>) => {
+      addEvent: async (eventData: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>) => {
         try {
           const dbEventData = transformEventForDb(eventData);
           const newDbEvent = await apiRequest('/api/calendar', {
@@ -163,7 +163,7 @@ export const useCalendarStore = create<CalendarStore>()(
           });
           const updatedEvent = transformDbEvent(updatedDbEvent);
           
-          set((state: any) => ({
+          set((state: CalendarStore) => ({
             events: state.events.map((event: CalendarEvent) =>
               event.id === id ? updatedEvent : event
             )
@@ -180,7 +180,7 @@ export const useCalendarStore = create<CalendarStore>()(
             method: 'DELETE',
           });
           
-          set((state: any) => ({
+          set((state: CalendarStore) => ({
             events: state.events.filter((event: CalendarEvent) => event.id !== id)
           }));
         } catch (error) {
@@ -201,26 +201,26 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      getEventsByDate: (date) => {
+      getEventsByDate: (date: Date) => {
         const events = get().events;
-        return events.filter(event => isSameDay(event.date, date));
+        return events.filter((event: CalendarEvent) => isSameDay(event.date, date));
       },
       
-      getEventsByMonth: (year, month) => {
+      getEventsByMonth: (year: number, month: number) => {
         const events = get().events;
-        return events.filter(event => 
+        return events.filter((event: CalendarEvent) => 
           event.date.getFullYear() === year && 
           event.date.getMonth() === month
         );
       },
       
-      getUpcomingEvents: (limit = 5) => {
+      getUpcomingEvents: (limit: number = 5) => {
         const events = get().events;
         const now = new Date();
         
         return events
-          .filter(event => event.date >= now && !event.completed)
-          .sort((a, b) => a.date.getTime() - b.date.getTime())
+          .filter((event: CalendarEvent) => event.date >= now && !event.completed)
+          .sort((a: CalendarEvent, b: CalendarEvent) => a.date.getTime() - b.date.getTime())
           .slice(0, limit);
       },
       
@@ -228,7 +228,7 @@ export const useCalendarStore = create<CalendarStore>()(
         const events = get().events;
         const now = new Date();
         
-        return events.filter(event => 
+        return events.filter((event: CalendarEvent) => 
           event.date < now && 
           !event.completed && 
           event.type === 'task'
@@ -240,12 +240,12 @@ export const useCalendarStore = create<CalendarStore>()(
         const now = new Date();
         
         return events
-          .filter(event => 
+          .filter((event: CalendarEvent) => 
             event.date >= now && 
             !event.completed && 
             (event.type === 'task' || event.type === 'milestone')
           )
-          .map(event => {
+          .map((event: CalendarEvent) => {
             const timeLeft = calculateTimeLeft(event.date);
             return {
               id: event.id,
@@ -256,7 +256,7 @@ export const useCalendarStore = create<CalendarStore>()(
               ...timeLeft
             };
           })
-          .sort((a, b) => a.targetDate.getTime() - b.targetDate.getTime());
+          .sort((a: CountdownEvent, b: CountdownEvent) => a.targetDate.getTime() - b.targetDate.getTime());
       },
       
       getCalendarStats: () => {
@@ -265,15 +265,15 @@ export const useCalendarStore = create<CalendarStore>()(
         
         return {
           totalEvents: events.length,
-          completedTasks: events.filter(e => e.completed).length,
-          pendingTasks: events.filter(e => !e.completed && e.type === 'task').length,
-          upcomingEvents: events.filter(e => e.date >= now && !e.completed).length,
-          overdueEvents: events.filter(e => e.date < now && !e.completed && e.type === 'task').length,
+          completedTasks: events.filter((e: CalendarEvent) => e.completed).length,
+          pendingTasks: events.filter((e: CalendarEvent) => !e.completed && e.type === 'task').length,
+          upcomingEvents: events.filter((e: CalendarEvent) => e.date >= now && !e.completed).length,
+          overdueEvents: events.filter((e: CalendarEvent) => e.date < now && !e.completed && e.type === 'task').length,
         };
       },
       
-      setFilter: (newFilter) => {
-        set(state => ({
+      setFilter: (newFilter: Partial<CalendarFilter>) => {
+        set((state: CalendarStore) => ({
           filter: { ...state.filter, ...newFilter }
         }));
       },
@@ -281,7 +281,7 @@ export const useCalendarStore = create<CalendarStore>()(
       getFilteredEvents: () => {
         const { events, filter } = get();
         
-        return events.filter(event => {
+        return events.filter((event: CalendarEvent) => {
           const matchesType = filter.types.length === 0 || filter.types.includes(event.type);
           const matchesPriority = filter.priorities.length === 0 || filter.priorities.includes(event.priority);
           const matchesCategory = filter.categories.length === 0 || 
@@ -292,20 +292,20 @@ export const useCalendarStore = create<CalendarStore>()(
         });
       },
       
-      searchEvents: (query) => {
+      searchEvents: (query: string) => {
         const events = get().events;
         const searchTerm = query.toLowerCase();
         
-        return events.filter(event =>
+        return events.filter((event: CalendarEvent) =>
           event.title.toLowerCase().includes(searchTerm) ||
           event.description?.toLowerCase().includes(searchTerm) ||
           event.category?.toLowerCase().includes(searchTerm)
         );
       },
       
-      getEventsByCategory: (category) => {
+      getEventsByCategory: (category: string) => {
         const events = get().events;
-        return events.filter(event => event.category === category);
+        return events.filter((event: CalendarEvent) => event.category === category);
       },
     }),
     {
@@ -330,7 +330,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
         return persistedState;
       },
-      onRehydrateStorage: () => (state: any) => {
+      onRehydrateStorage: () => (state: CalendarStore | undefined) => {
         if (state?.events) {
           state.events = state.events.map((e: any) => ({
             ...e,
