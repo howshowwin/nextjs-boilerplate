@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navigation from "@/components/Navigation";
+import AppleNavigation from "@/components/AppleNavigation";
 import AuthSessionProvider from "@/components/SessionProvider";
 
 const inter = Inter({
@@ -23,10 +23,9 @@ export default function RootLayout({
     <html lang="zh-TW">
       <body className={`${inter.variable} antialiased`}>
         <AuthSessionProvider>
-          <main className="pb-20">
+          <AppleNavigation>
             {children}
-          </main>
-          <Navigation />
+          </AppleNavigation>
         </AuthSessionProvider>
       </body>
     </html>

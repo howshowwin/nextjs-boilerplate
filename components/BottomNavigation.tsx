@@ -107,10 +107,14 @@ export default function BottomNavigation() {
                   className="hidden"
                   onChange={(e) => {
                     const files = e.target.files;
+                    console.log('[BottomNav] 檔案選擇事件觸發, 檔案數量:', files?.length);
                     if (files && files.length) {
+                      console.log('[BottomNav] 發送 uploadFiles 事件');
                       // 觸發上傳事件
                       window.dispatchEvent(new CustomEvent('uploadFiles', { detail: files }));
                       setShowUpload(false);
+                      // 清空 input value 防止重複觸發
+                      e.target.value = '';
                     }
                   }}
                 />

@@ -1,4 +1,4 @@
-import { signIn, signOut } from 'next-auth/react';
+import { signOut } from 'next-auth/react';
 
 /**
  * 處理 API 請求並自動處理 Token 刷新
@@ -32,34 +32,105 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
 }
 
 /**
- * 上傳檔案的 API 請求
+ * 上傳檔案的 API 請求（包含圖片壓縮）
  */
+// 全局重複請求檢測
+const activeUploads = new Map<string, Promise<any>>();
+
 export async function uploadFile(file: File, description?: string) {
-  const base64 = await fileToBase64(file);
+  // 創建檔案唯一標識
+  const fileKey = `${file.name}_${file.size}_${file.lastModified}`;
   
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('base64', base64);
-  if (description) {
-    formData.append('description', description);
+  // 檢查是否已經有相同檔案在上傳中
+  if (activeUploads.has(fileKey)) {
+    console.log(`[DUPLICATE] 檔案 ${file.name} 已在上傳中，返回現有Promise`);
+    return activeUploads.get(fileKey);
   }
+  
+  const uploadId = Math.random().toString(36).substr(2, 9);
+  console.log(`[${uploadId}] 開始上傳檔案: ${file.name}, 大小: ${file.size} bytes`);
+  
+  // 創建上傳 Promise 並加入 Map
+  const uploadPromise = (async () => {
+    try {
+      // 動態導入圖片壓縮工具（避免SSR問題）
+      const { compressImage } = await import('./imageCompression');
+      
+      // 壓縮圖片
+      console.log(`[${uploadId}] 開始壓縮圖片...`);
+      const compressionResult = await compressImage(file);
+    
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('originalBase64', compressionResult.originalBase64);
+      formData.append('compressedBase64', compressionResult.compressedBase64);
+      formData.append('originalSize', compressionResult.originalSize.toString());
+      formData.append('compressedSize', compressionResult.compressedSize.toString());
+      
+      if (description) {
+        formData.append('description', description);
+      }
 
-  const response = await apiRequest('/api/photos/upload', {
-    method: 'POST',
-    body: formData,
-    // 不設定 Content-Type，讓瀏覽器自動設定 multipart/form-data
-  });
+      console.log(`[${uploadId}] 發送上傳請求...`);
+      const response = await apiRequest('/api/photos/upload', {
+        method: 'POST',
+        body: formData,
+        // 不設定 Content-Type，讓瀏覽器自動設定 multipart/form-data
+      });
 
-  if (!response) {
-    throw new Error('上傳失敗：授權過期');
-  }
+      if (!response) {
+        throw new Error('上傳失敗：授權過期');
+      }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`上傳失敗: ${errorText}`);
-  }
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`上傳失敗: ${errorText}`);
+      }
 
-  return response.json();
+      const result = await response.json();
+      console.log(`[${uploadId}] 上傳完成:`, result);
+      return result;
+      
+    } catch (error) {
+      console.error(`[${uploadId}] 檔案處理失敗:`, error);
+      
+      // 如果壓縮失敗，回退到原始方法
+      const base64 = await fileToBase64(file);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('base64', base64);
+      if (description) {
+        formData.append('description', description);
+      }
+
+      const response = await apiRequest('/api/photos/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response) {
+        throw new Error('上傳失敗：授權過期');
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`上傳失敗: ${errorText}`);
+      }
+
+      return response.json();
+    } finally {
+      // 完成後從 Map 中移除
+      activeUploads.delete(fileKey);
+      console.log(`[${uploadId}] 從活動上傳列表中移除`);
+    }
+  })();
+
+  // 將 Promise 加入 Map
+  activeUploads.set(fileKey, uploadPromise);
+  console.log(`[${uploadId}] 加入活動上傳列表, 當前活動上傳數: ${activeUploads.size}`);
+  
+  return uploadPromise;
 }
 
 /**

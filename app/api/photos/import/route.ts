@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
         const imageUrl = `https://drive.google.com/uc?export=download&id=${f.id}`;
 
-        const [photo] = await sql`
+        await sql`
           INSERT INTO photos (file_id, name, image_url)
           VALUES (${f.id}, ${f.name}, ${imageUrl})
           RETURNING id;

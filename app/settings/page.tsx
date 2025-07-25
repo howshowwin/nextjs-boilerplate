@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import Image from 'next/image';
 import {
   UserCircleIcon,
   CloudIcon,
@@ -84,9 +85,11 @@ export default function SettingsPage() {
           <div className="card p-6 mb-6 text-center">
             <div className="w-20 h-20 mx-auto mb-4 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
               {session.user?.image ? (
-                <img
+                <Image
                   src={session.user.image}
                   alt="Profile"
+                  width={80}
+                  height={80}
                   className="w-full h-full rounded-full object-cover"
                 />
               ) : (

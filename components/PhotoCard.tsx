@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { 
-  HeartIcon, 
   ShareIcon, 
   EllipsisHorizontalIcon,
   TrashIcon,
   PencilIcon
 } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 
 interface Photo {
   id: number;
@@ -22,9 +20,9 @@ interface Photo {
 interface PhotoCardProps {
   photo: Photo;
   onSelect?: (photo: Photo) => void;
-  onFavorite?: (photo: Photo) => void;
   onDelete?: (photo: Photo) => void;
   onShare?: (photo: Photo) => void;
+  onEditLabels?: (photo: Photo) => void;
   isSelected?: boolean;
   selectionMode?: boolean;
 }
@@ -32,14 +30,15 @@ interface PhotoCardProps {
 export default function PhotoCard({ 
   photo, 
   onSelect, 
-  onFavorite, 
   onDelete, 
   onShare,
+  onEditLabels,
   isSelected = false,
   selectionMode = false 
 }: PhotoCardProps) {
   const [showActions, setShowActions] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [showAllLabels, setShowAllLabels] = useState(false);
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -50,16 +49,32 @@ export default function PhotoCard({
   };
 
   return (
-    <div className={`card relative group overflow-hidden ${isSelected ? 'ring-2 ring-blue-500' : ''}`}>
-      {/* 照片容器 */}
+    <div className={`
+      relative group cursor-pointer transition-all duration-200
+      ${isSelected ? 'scale-95' : 'hover:scale-[1.02]'}
+    `}>
+      {/* Apple Photos-style Image Container */}
       <div 
-        className="relative aspect-square cursor-pointer overflow-hidden"
+        className={`
+          relative w-full aspect-square overflow-hidden transition-all duration-300
+          ${isSelected 
+            ? 'rounded-2xl ring-3 ring-offset-2' 
+            : 'rounded-xl group-hover:rounded-2xl'
+          }
+        `}
+        style={{ 
+          '--tw-ring-color': isSelected ? 'var(--accent)' : 'transparent',
+          '--tw-ring-offset-color': 'var(--background)'
+        } as React.CSSProperties}
         onClick={handleCardClick}
       >
-        {/* 載入中的佔位符 */}
+        {/* Loading Placeholder */}
         {!imageLoaded && (
-          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse flex items-center justify-center">
-            <div className="w-8 h-8 text-gray-400">
+          <div 
+            className="absolute inset-0 animate-pulse flex items-center justify-center"
+            style={{ background: 'var(--surface-secondary)' }}
+          >
+            <div className="w-8 h-8" style={{ color: 'var(--foreground-tertiary)' }}>
               <svg fill="currentColor" viewBox="0 0 24 24">
                 <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
               </svg>
@@ -71,23 +86,31 @@ export default function PhotoCard({
           src={photo.image_url}
           alt={photo.name}
           fill
-          className={`object-cover transition-all duration-300 group-hover:scale-105 ${
+          className={`object-cover transition-all duration-500 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           onLoad={() => setImageLoaded(true)}
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
         />
 
-        {/* 選擇模式的勾選框 */}
+        {/* Selection Mode Checkmark */}
         {selectionMode && (
-          <div className="absolute top-2 right-2">
-            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-              isSelected 
-                ? 'bg-blue-500 border-blue-500' 
-                : 'bg-white/80 border-white/80 backdrop-blur-sm'
-            }`}>
+          <div className="absolute top-3 right-3">
+            <div 
+              className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                isSelected 
+                  ? 'scale-110' 
+                  : 'scale-100'
+              }`}
+              style={{
+                background: isSelected ? 'var(--accent)' : 'rgba(255, 255, 255, 0.9)',
+                borderColor: isSelected ? 'var(--accent)' : 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)'
+              }}
+            >
               {isSelected && (
-                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}
@@ -95,99 +118,139 @@ export default function PhotoCard({
           </div>
         )}
 
-        {/* 懸停時的操作按鈕 */}
+        {/* Apple-style Hover Actions */}
         {!selectionMode && (
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300">
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite?.(photo);
-                }}
-                className="w-8 h-8 bg-white/80 dark:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-black transition-colors"
-              >
-                {photo.isFavorite ? (
-                  <HeartIconSolid className="w-4 h-4 text-red-500" />
-                ) : (
-                  <HeartIcon className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-                )}
-              </button>
-              
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-300">
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowActions(!showActions);
                 }}
-                className="w-8 h-8 bg-white/80 dark:bg-black/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-black transition-colors"
+                className="interactive-scale w-9 h-9 rounded-2xl flex items-center justify-center transition-all duration-200"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)'
+                }}
               >
-                <EllipsisHorizontalIcon className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                <EllipsisHorizontalIcon className="w-5 h-5 text-black" />
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Apple Photos-style Gradient Overlay for Labels */}
+        {photo.labels && photo.labels.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3">
+            <div className="flex flex-wrap gap-1">
+              {(showAllLabels ? photo.labels : photo.labels.slice(0, 2)).map((label, index) => (
+                <span 
+                  key={index} 
+                  className="text-caption-1 font-medium px-2 py-1 rounded-lg cursor-pointer"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllLabels(!showAllLabels);
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+              {!showAllLabels && photo.labels.length > 2 && (
+                <span 
+                  className="text-caption-1 font-medium px-2 py-1 rounded-lg cursor-pointer"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAllLabels(true);
+                  }}
+                >
+                  +{photo.labels.length - 2}
+                </span>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* 照片資訊 */}
-      <div className="p-3">
-        <h3 className="font-medium text-sm truncate mb-2" title={photo.name}>
-          {photo.name}
-        </h3>
-        
-        {/* 標籤 */}
-        {photo.labels && photo.labels.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {photo.labels.slice(0, 3).map((label, index) => (
-              <span key={index} className="tag text-xs">
-                {label}
-              </span>
-            ))}
-            {photo.labels.length > 3 && (
-              <span className="tag text-xs">
-                +{photo.labels.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 操作選單 */}
+      {/* Apple-style Action Menu */}
       {showActions && (
-        <div className="absolute top-12 right-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-10 min-w-[120px]">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare?.(photo);
-              setShowActions(false);
-            }}
-            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-          >
-            <ShareIcon className="w-4 h-4" />
-            分享
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              // 編輯功能
-              setShowActions(false);
-            }}
-            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-          >
-            <PencilIcon className="w-4 h-4" />
-            編輯
-          </button>
-          
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete?.(photo);
-              setShowActions(false);
-            }}
-            className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-red-500"
-          >
-            <TrashIcon className="w-4 h-4" />
-            刪除
-          </button>
+        <div 
+          className="absolute top-16 right-3 z-20 animate-spring-up"
+          style={{
+            background: 'var(--surface)',
+            borderRadius: 'var(--radius-large)',
+            boxShadow: 'var(--shadow-modal)',
+            border: '0.5px solid var(--separator)',
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)'
+          }}
+        >
+          <div className="py-2 min-w-[140px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare?.(photo);
+                setShowActions(false);
+              }}
+              className="w-full px-4 py-3 text-left text-callout font-medium transition-all duration-200 flex items-center space-x-3 hover:opacity-80"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <ShareIcon className="w-5 h-5" />
+              <span>分享</span>
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditLabels?.(photo);
+                setShowActions(false);
+              }}
+              className="w-full px-4 py-3 text-left text-callout font-medium transition-all duration-200 flex items-center space-x-3 hover:opacity-80"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--surface-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <PencilIcon className="w-5 h-5" />
+              <span>編輯標籤</span>
+            </button>
+            
+            <div className="my-1 border-t" style={{ borderColor: 'var(--separator)' }}></div>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(photo);
+                setShowActions(false);
+              }}
+              className="w-full px-4 py-3 text-left text-callout font-medium transition-all duration-200 flex items-center space-x-3"
+              style={{ color: 'var(--destructive)' }}
+            >
+              <TrashIcon className="w-5 h-5" />
+              <span>刪除</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

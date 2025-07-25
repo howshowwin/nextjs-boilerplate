@@ -32,12 +32,21 @@ export default function SearchBar({
 
   return (
     <div className={`relative ${className}`}>
-      <div className={`relative flex items-center transition-all duration-200 ${
-        isFocused 
-          ? 'bg-white dark:bg-gray-800 shadow-lg ring-2 ring-blue-500/20' 
-          : 'bg-gray-100 dark:bg-gray-800'
-      } rounded-xl`}>
-        <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 ml-4" />
+      <div 
+        className={`relative flex items-center transition-all duration-200 ${
+          isFocused ? 'scale-[1.02]' : 'scale-100'
+        }`}
+        style={{
+          background: isFocused ? 'var(--surface)' : 'var(--surface-secondary)',
+          border: `0.5px solid ${isFocused ? 'var(--accent)' : 'var(--separator)'}`,
+          borderRadius: 'var(--radius-large)',
+          boxShadow: isFocused ? 'var(--shadow-2)' : 'var(--shadow-1)'
+        }}
+      >
+        <MagnifyingGlassIcon 
+          className="w-5 h-5 ml-4" 
+          style={{ color: isFocused ? 'var(--accent)' : 'var(--foreground-tertiary)' }}
+        />
         
         <input
           type="text"
@@ -46,25 +55,52 @@ export default function SearchBar({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
-          className="flex-1 bg-transparent px-3 py-3 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none"
+          className="flex-1 bg-transparent px-3 py-3 text-body focus:outline-none"
+          style={{ 
+            color: 'var(--foreground)',
+            fontFamily: 'var(--font-system)'
+          }}
         />
         
         {query && (
           <button
             onClick={handleClear}
-            className="mr-3 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            className="mr-3 p-2 rounded-full interactive-scale transition-all duration-200"
+            style={{
+              background: 'var(--surface-secondary)',
+              color: 'var(--foreground-tertiary)'
+            }}
           >
-            <XMarkIcon className="w-4 h-4 text-gray-400" />
+            <XMarkIcon className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* 搜尋建議 */}
+      {/* Apple-style Search Suggestions */}
       {isFocused && query && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 z-10 max-h-60 overflow-y-auto">
-          {/* 這裡可以添加搜尋建議邏輯 */}
-          <div className="p-3 text-sm text-gray-500 dark:text-gray-400">
-            正在搜尋 "{query}"...
+        <div 
+          className="absolute top-full left-0 right-0 mt-2 z-20 animate-spring-up max-h-60 overflow-y-auto"
+          style={{
+            background: 'var(--surface)',
+            borderRadius: 'var(--radius-large)',
+            boxShadow: 'var(--shadow-modal)',
+            border: '0.5px solid var(--separator)',
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)'
+          }}
+        >
+          <div className="p-4">
+            <div className="flex items-center space-x-3">
+              <div 
+                className="p-2 rounded-xl"
+                style={{ background: 'var(--surface-secondary)' }}
+              >
+                <MagnifyingGlassIcon className="w-4 h-4" style={{ color: 'var(--accent)' }} />
+              </div>
+              <span className="text-callout" style={{ color: 'var(--foreground-secondary)' }}>
+                正在搜尋 &quot;{query}&quot;...
+              </span>
+            </div>
           </div>
         </div>
       )}

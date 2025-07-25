@@ -6,7 +6,7 @@ import BottomNavigation from '@/components/BottomNavigation';
 import SearchBar from '@/components/SearchBar';
 
 export default function FavoritesPage() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [, setSearchQuery] = useState('');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">

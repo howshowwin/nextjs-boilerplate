@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { CalendarEvent, CalendarFilter, CalendarStats, CountdownEvent } from '@/lib/types/calendar';
@@ -132,7 +131,7 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      addEvent: async (eventData) => {
+      addEvent: async (eventData: Omit<CalendarEvent, 'id'>) => {
         try {
           const dbEventData = transformEventForDb(eventData);
           const newDbEvent = await apiRequest('/api/calendar', {
@@ -150,9 +149,9 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      updateEvent: async (id, updates) => {
+      updateEvent: async (id: string, updates: Partial<CalendarEvent>) => {
         try {
-          const currentEvent = get().events.find(e => e.id === id);
+          const currentEvent = get().events.find((e: CalendarEvent) => e.id === id);
           if (!currentEvent) throw new Error('事件不存在');
           
           const updatedEventData = { ...currentEvent, ...updates };
@@ -164,8 +163,8 @@ export const useCalendarStore = create<CalendarStore>()(
           });
           const updatedEvent = transformDbEvent(updatedDbEvent);
           
-          set(state => ({
-            events: state.events.map(event =>
+          set((state: any) => ({
+            events: state.events.map((event: CalendarEvent) =>
               event.id === id ? updatedEvent : event
             )
           }));
@@ -175,14 +174,14 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      deleteEvent: async (id) => {
+      deleteEvent: async (id: string) => {
         try {
           await apiRequest(`/api/calendar/${id}`, {
             method: 'DELETE',
           });
           
-          set(state => ({
-            events: state.events.filter(event => event.id !== id)
+          set((state: any) => ({
+            events: state.events.filter((event: CalendarEvent) => event.id !== id)
           }));
         } catch (error) {
           console.error('刪除事件失敗:', error);
@@ -190,9 +189,9 @@ export const useCalendarStore = create<CalendarStore>()(
         }
       },
       
-      toggleEventCompletion: async (id) => {
+      toggleEventCompletion: async (id: string) => {
         try {
-          const currentEvent = get().events.find(e => e.id === id);
+          const currentEvent = get().events.find((e: CalendarEvent) => e.id === id);
           if (!currentEvent) throw new Error('事件不存在');
           
           await get().updateEvent(id, { completed: !currentEvent.completed });
@@ -315,7 +314,7 @@ export const useCalendarStore = create<CalendarStore>()(
       storage: createJSONStorage(() => localStorage),
       version: 1,
       // 轉換日期字串為 Date 物件
-      migrate: (persistedState: any, _version: number) => {
+      migrate: (persistedState: any) => {
         // 同上：第一次升級時也轉換
         if (persistedState?.events) {
           persistedState.events = persistedState.events.map((e: any) => ({

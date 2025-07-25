@@ -1,9 +1,14 @@
 import sql from '@/lib/db';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token?.accessToken) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
   // 確保資料表存在
   await sql`
     CREATE TABLE IF NOT EXISTS photos (

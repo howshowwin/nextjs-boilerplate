@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 import dynamic from 'next/dynamic';
@@ -8,10 +8,8 @@ const Lightbox = dynamic(() => import('yet-another-react-lightbox'), { ssr: fals
 import Fullscreen from 'yet-another-react-lightbox/plugins/fullscreen';
 import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
+import Fuse from 'fuse.js';
 
-import { NextRequest } from 'next/server';
-import { google } from 'googleapis';
-import { getToken } from 'next-auth/jwt';
 
 interface Photo {
   id: number;
@@ -27,7 +25,6 @@ export default function DrivePreviewPage() {
   const [uploadTotal, setUploadTotal] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [query, setQuery] = useState('');
-  const Fuse = require('fuse.js');
   const [open, setOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -86,10 +83,6 @@ export default function DrivePreviewPage() {
     load();
   };
 
-  const slides = displayed.map((img) => ({
-    src: `/_next/image?url=${encodeURIComponent(img.image_url)}&w=2048&q=90`,
-    title: img.name,
-  }));
 
   return (
     <main className="p-6 max-w-5xl mx-auto">

@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { 
   Squares2X2Icon, 
   ListBulletIcon, 
-  FunnelIcon,
   ArrowUpTrayIcon,
   EllipsisHorizontalIcon
 } from '@heroicons/react/24/outline';
@@ -17,9 +16,9 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import 'yet-another-react-lightbox/styles.css';
 
 import PhotoCard from '@/components/PhotoCard';
-import SearchBar from '@/components/SearchBar';
-import BottomNavigation from '@/components/BottomNavigation';
+import EditLabelsModal from '@/components/EditLabelsModal';
 import { uploadFile, handleAuthError } from '@/lib/auth-utils';
+import Fuse from 'fuse.js';
 
 interface Photo {
   id: number;
@@ -40,12 +39,14 @@ export default function PhotosPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadTotal, setUploadTotal] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [sortBy, setSortBy] = useState<SortBy>('date');
+  const [] = useState<SortBy>('date');
   const [selectedPhotos, setSelectedPhotos] = useState<Set<number>>(new Set());
-  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectionMode] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
 
   // 載入照片
   const loadPhotos = useCallback(async () => {
@@ -62,40 +63,16 @@ export default function PhotosPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadPhotos();
+  // 上傳照片（使用新的 auth utils）
+  const handleUpload = useCallback(async (files: FileList) => {
+    const batchId = Math.random().toString(36).substr(2, 9);
+    console.log(`[BATCH-${batchId}] handleUpload 被呼叫, 檔案數量: ${files.length}, 當前上傳狀態: ${uploading}`);
     
-    // 監聽上傳事件
-    const handleUploadFiles = (event: CustomEvent) => {
-      handleUpload(event.detail);
-    };
-    
-    window.addEventListener('uploadFiles', handleUploadFiles as EventListener);
-    
-    return () => {
-      window.removeEventListener('uploadFiles', handleUploadFiles as EventListener);
-    };
-  }, [loadPhotos]);
-
-  // 搜尋功能
-  const handleSearch = useCallback((query: string) => {
-    if (!query.trim()) {
-      setFilteredPhotos(photos);
+    if (uploading) {
+      console.log(`[BATCH-${batchId}] 上傳進行中，忽略重複請求`);
       return;
     }
-
-    const Fuse = require('fuse.js');
-    const fuse = new Fuse(photos, {
-      keys: ['name', 'labels'],
-      threshold: 0.4,
-    });
     
-    const results = fuse.search(query).map((result: any) => result.item);
-    setFilteredPhotos(results);
-  }, [photos]);
-
-  // 上傳照片（使用新的 auth utils）
-  const handleUpload = async (files: FileList) => {
     setUploading(true);
     setUploadTotal(files.length);
     setUploadProgress(0);
@@ -103,12 +80,14 @@ export default function PhotosPage() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        console.log(`[BATCH-${batchId}] 處理檔案 ${i + 1}/${files.length}: ${file.name}`);
         
         try {
           await uploadFile(file);
           setUploadProgress(i + 1);
+          console.log(`[BATCH-${batchId}] 檔案 ${file.name} 上傳完成`);
         } catch (error) {
-          console.error(`上傳檔案 ${file.name} 失敗:`, error);
+          console.error(`[BATCH-${batchId}] 上傳檔案 ${file.name} 失敗:`, error);
           handleAuthError(error);
           // 如果是授權錯誤，會自動導向錯誤頁面
           // 其他錯誤繼續處理下一個檔案
@@ -122,7 +101,45 @@ export default function PhotosPage() {
     } finally {
       setUploading(false);
     }
-  };
+  }, [loadPhotos, uploading]);
+
+  // 使用 ref 來避免 useEffect 依賴問題
+  const handleUploadRef = useRef(handleUpload);
+  handleUploadRef.current = handleUpload;
+
+  useEffect(() => {
+    loadPhotos();
+    
+    // 監聽上傳事件
+    const handleUploadFiles = (event: CustomEvent) => {
+      console.log('[EVENT] uploadFiles 事件被觸發', event.detail);
+      handleUploadRef.current(event.detail);
+    };
+    
+    console.log('[EVENT] 添加 uploadFiles 事件監聽器');
+    window.addEventListener('uploadFiles', handleUploadFiles as EventListener);
+    
+    return () => {
+      console.log('[EVENT] 移除 uploadFiles 事件監聽器');
+      window.removeEventListener('uploadFiles', handleUploadFiles as EventListener);
+    };
+  }, [loadPhotos]);
+
+  // 搜尋功能
+  const handleSearch = useCallback((query: string) => {
+    if (!query.trim()) {
+      setFilteredPhotos(photos);
+      return;
+    }
+
+    const fuse = new Fuse(photos, {
+      keys: ['name', 'labels'],
+      threshold: 0.4,
+    });
+    
+    const results = fuse.search(query).map((result: any) => result.item);
+    setFilteredPhotos(results);
+  }, [photos]);
 
   // 照片操作
   const handlePhotoSelect = (photo: Photo) => {
@@ -141,10 +158,45 @@ export default function PhotosPage() {
     }
   };
 
-  const handleFavorite = async (photo: Photo) => {
-    // 收藏功能待實現
-    console.log('收藏照片:', photo.id);
-  };
+  // 打開編輯標籤模態框
+  const handleEditLabels = useCallback((photo: Photo) => {
+    setEditingPhoto(photo);
+    setEditModalOpen(true);
+  }, []);
+
+  // 保存標籤更新
+  const handleSaveLabels = useCallback(async (photo: Photo, newLabels: string[]) => {
+    try {
+      const response = await fetch(`/api/photos/${photo.id}/labels`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ labels: newLabels }),
+      });
+
+      if (response.ok) {
+        // 更新本地狀態
+        setPhotos(photos.map(p => 
+          p.id === photo.id ? { ...p, labels: newLabels } : p
+        ));
+        setFilteredPhotos(filteredPhotos.map(p => 
+          p.id === photo.id ? { ...p, labels: newLabels } : p
+        ));
+        console.log('標籤更新成功:', photo.name, newLabels);
+      } else {
+        console.error('標籤更新失敗');
+      }
+    } catch (error) {
+      console.error('標籤更新失敗:', error);
+    }
+  }, [photos, filteredPhotos]);
+
+  // 關閉編輯模態框
+  const handleCloseEditModal = useCallback(() => {
+    setEditModalOpen(false);
+    setEditingPhoto(null);
+  }, []);
 
   const handleDelete = async (photo: Photo) => {
     if (confirm('確定要刪除這張照片嗎？')) {
@@ -176,130 +228,305 @@ export default function PhotosPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black pb-20">
-      {/* 頂部導航 */}
-      <header className="sticky top-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">照片</h1>
-            <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
-              {filteredPhotos.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* 檢視模式切換 */}
-            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'grid' 
-                    ? 'bg-white dark:bg-gray-700 shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
+    <>
+      {/* Desktop Photos Header */}
+      <header className="hidden lg:block material-thick sticky top-0 z-40 border-b border-opacity-20" style={{ borderColor: 'var(--separator)' }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 lg:px-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-title-1" style={{ color: 'var(--foreground)' }}>
+                照片
+              </h1>
+              <div 
+                className="px-3 py-1 rounded-2xl"
+                style={{ 
+                  background: 'var(--surface-secondary)',
+                  color: 'var(--foreground-secondary)'
+                }}
               >
-                <Squares2X2Icon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-white dark:bg-gray-700 shadow-sm' 
-                    : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                }`}
-              >
-                <ListBulletIcon className="w-5 h-5" />
-              </button>
+                <span className="text-footnote font-semibold">
+                  {filteredPhotos.length} 張照片
+                </span>
+              </div>
             </div>
 
-            {/* 更多選項 */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <EllipsisHorizontalIcon className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+            <div className="flex items-center space-x-3">
+              {/* Apple Segmented Control for View Mode */}
+              <div 
+                className="flex rounded-2xl p-1"
+                style={{ background: 'var(--surface-secondary)' }}
+              >
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-4 py-2 rounded-xl text-callout font-medium transition-all duration-200 ${
+                    viewMode === 'grid' ? 'interactive-scale' : ''
+                  }`}
+                  style={{
+                    background: viewMode === 'grid' ? 'var(--surface)' : 'transparent',
+                    color: viewMode === 'grid' ? 'var(--foreground)' : 'var(--foreground-secondary)',
+                    boxShadow: viewMode === 'grid' ? 'var(--shadow-1)' : 'none'
+                  }}
+                >
+                  <Squares2X2Icon className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-4 py-2 rounded-xl text-callout font-medium transition-all duration-200 ${
+                    viewMode === 'list' ? 'interactive-scale' : ''
+                  }`}
+                  style={{
+                    background: viewMode === 'list' ? 'var(--surface)' : 'transparent',
+                    color: viewMode === 'list' ? 'var(--foreground)' : 'var(--foreground-secondary)',
+                    boxShadow: viewMode === 'list' ? 'var(--shadow-1)' : 'none'
+                  }}
+                >
+                  <ListBulletIcon className="w-5 h-5" />
+                </button>
+              </div>
 
-        {/* 搜尋欄 */}
-        <div className="px-4 pb-3">
-          <SearchBar onSearch={handleSearch} />
+              {/* More Options */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="interactive-scale p-3 rounded-2xl transition-all duration-200"
+                style={{ 
+                  background: showFilters ? 'var(--accent)' : 'var(--surface-secondary)',
+                  color: showFilters ? 'white' : 'var(--foreground-secondary)'
+                }}
+              >
+                <EllipsisHorizontalIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Apple Search Bar */}
+          <div className="relative">
+            <div 
+              className="relative flex items-center rounded-2xl transition-all duration-200"
+              style={{ 
+                background: 'var(--surface-secondary)',
+                border: '0.5px solid var(--separator)'
+              }}
+            >
+              <div className="pl-4">
+                <svg 
+                  className="w-5 h-5" 
+                  style={{ color: 'var(--foreground-tertiary)' }}
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  strokeWidth={2} 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="搜尋照片、標籤..."
+                onChange={(e) => handleSearch(e.target.value)}
+                className="flex-1 bg-transparent px-3 py-3 text-body focus:outline-none"
+                style={{ 
+                  color: 'var(--foreground)',
+                  fontFamily: 'var(--font-system)'
+                }}
+              />
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* 上傳進度 */}
+      {/* Mobile Search Bar */}
+      <div className="lg:hidden px-6 py-4" style={{ background: 'var(--background)' }}>
+        <div className="relative">
+          <div 
+            className="relative flex items-center rounded-2xl transition-all duration-200"
+            style={{ 
+              background: 'var(--surface-secondary)',
+              border: '0.5px solid var(--separator)'
+            }}
+          >
+            <div className="pl-4">
+              <svg 
+                className="w-5 h-5" 
+                style={{ color: 'var(--foreground-tertiary)' }}
+                fill="none" 
+                viewBox="0 0 24 24" 
+                strokeWidth={2} 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="搜尋照片、標籤..."
+              onChange={(e) => handleSearch(e.target.value)}
+              className="flex-1 bg-transparent px-3 py-3 text-body focus:outline-none"
+              style={{ 
+                color: 'var(--foreground)',
+                fontFamily: 'var(--font-system)'
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Apple-style Upload Progress */}
       {uploading && (
-        <div className="fixed top-20 left-4 right-4 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 z-30 animate-slide-up">
-          <div className="flex items-center gap-3">
-            <ArrowUpTrayIcon className="w-5 h-5 text-blue-500" />
-            <div className="flex-1">
-              <div className="flex justify-between text-sm mb-1">
-                <span>上傳中...</span>
-                <span>{uploadProgress}/{uploadTotal}</span>
+        <div className="fixed top-24 left-6 right-6 lg:left-auto lg:right-8 lg:w-80 z-50 animate-spring-up">
+          <div className="card-primary p-6 material-thick">
+            <div className="flex items-center space-x-4">
+              <div 
+                className="p-3 rounded-2xl"
+                style={{ 
+                  background: 'rgba(0, 122, 255, 0.1)',
+                  color: 'var(--accent)'
+                }}
+              >
+                <ArrowUpTrayIcon className="w-6 h-6" />
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="flex-1">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-headline" style={{ color: 'var(--foreground)' }}>
+                    上傳中...
+                  </span>
+                  <span className="text-footnote" style={{ color: 'var(--foreground-secondary)' }}>
+                    {uploadProgress}/{uploadTotal}
+                  </span>
+                </div>
                 <div 
-                  className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(uploadProgress / uploadTotal) * 100}%` }}
-                />
+                  className="w-full h-2 rounded-full overflow-hidden"
+                  style={{ background: 'var(--surface-secondary)' }}
+                >
+                  <div 
+                    className="h-full rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${(uploadProgress / uploadTotal) * 100}%`,
+                      background: 'var(--accent)'
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* 主要內容 */}
-      <main className="px-4 py-6">
+      {/* Apple Photos Main Content */}
+      <main className="max-w-6xl mx-auto px-6 py-8 lg:px-8">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div 
+              className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" 
+              style={{ borderColor: 'var(--accent)' }}
+            ></div>
           </div>
         ) : filteredPhotos.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-              <svg fill="currentColor" viewBox="0 0 24 24">
+          <div className="card-primary p-12 text-center animate-spring-up">
+            <div 
+              className="w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center"
+              style={{ background: 'rgba(0, 122, 255, 0.1)' }}
+            >
+              <svg 
+                className="w-12 h-12" 
+                style={{ color: 'var(--accent)' }}
+                fill="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-              沒有找到照片
+            <h3 className="text-title-3 mb-3" style={{ color: 'var(--foreground)' }}>
+              還沒有照片
             </h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <p className="text-body mb-8" style={{ color: 'var(--foreground-secondary)' }}>
               開始上傳您的第一張照片吧
             </p>
+            <label className="btn-primary interactive-scale cursor-pointer">
+              <ArrowUpTrayIcon className="w-5 h-5" />
+              選擇照片
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  console.log('[DirectUpload] 檔案選擇事件觸發, 檔案數量:', e.target.files?.length);
+                  if (e.target.files) {
+                    console.log('[DirectUpload] 直接呼叫 handleUpload');
+                    handleUpload(e.target.files);
+                    // 清空 input value 防止重複觸發
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </label>
           </div>
         ) : (
-          <div className={viewMode === 'grid' ? 'photo-grid' : 'space-y-4'}>
-            {filteredPhotos.map((photo) => (
-              <PhotoCard
+          <div className={`
+            animate-fade-in
+            ${viewMode === 'grid' 
+              ? 'grid gap-1 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6' 
+              : 'space-y-4'
+            }
+          `}>
+            {filteredPhotos.map((photo, index) => (
+              <div
                 key={photo.id}
-                photo={photo}
-                onSelect={handlePhotoSelect}
-                onFavorite={handleFavorite}
-                onDelete={handleDelete}
-                onShare={handleShare}
-                isSelected={selectedPhotos.has(photo.id)}
-                selectionMode={selectionMode}
-              />
+                className={`
+                  animate-slide-in-right
+                  ${viewMode === 'grid' 
+                    ? 'aspect-square rounded-2xl overflow-hidden interactive-scale cursor-pointer' 
+                    : 'card-primary p-4'
+                  }
+                `}
+                style={{ animationDelay: `${index * 0.05}s` }}
+                onClick={() => handlePhotoSelect(photo)}
+                suppressHydrationWarning
+              >
+                <PhotoCard
+                  photo={photo}
+                  onSelect={handlePhotoSelect}
+                  onEditLabels={handleEditLabels}
+                  onDelete={handleDelete}
+                  onShare={handleShare}
+                  isSelected={selectedPhotos.has(photo.id)}
+                  selectionMode={selectionMode}
+                />
+              </div>
             ))}
           </div>
         )}
       </main>
 
-      {/* Lightbox */}
+      {/* Apple-style Lightbox */}
       {lightboxOpen && (
-        <Lightbox
-          open={lightboxOpen}
-          close={() => setLightboxOpen(false)}
-          index={currentIndex}
-          slides={slides}
-          plugins={[Fullscreen, Zoom] as any}
-        />
+        <div className="fixed inset-0 z-50">
+          <div className="modal-backdrop">
+            <Lightbox
+              open={lightboxOpen}
+              close={() => setLightboxOpen(false)}
+              index={currentIndex}
+              slides={slides}
+              plugins={[Fullscreen, Zoom] as any}
+              styles={{
+                container: { 
+                  backgroundColor: 'transparent',
+                  backdropFilter: 'blur(40px)',
+                  WebkitBackdropFilter: 'blur(40px)'
+                }
+              }}
+            />
+          </div>
+        </div>
       )}
 
-      {/* 底部導航 */}
-      <BottomNavigation />
-    </div>
+      {/* Edit Labels Modal */}
+      <EditLabelsModal
+        isOpen={editModalOpen}
+        photo={editingPhoto}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveLabels}
+      />
+    </>
   );
 } 

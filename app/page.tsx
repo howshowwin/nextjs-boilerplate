@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useCalendarStore } from '@/lib/store/calendar';
-import { CountdownEvent } from '@/lib/types/calendar';
-import { ClockIcon, CalendarDaysIcon, CheckCircleIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { CalendarDaysIcon, CheckCircleIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import Link from 'next/link';
 
@@ -25,7 +24,7 @@ export default function Home() {
     milestones: [],
     stats: { totalTasks: 0, totalMilestones: 0, urgentTasks: 0, urgentMilestones: 0 }
   });
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [, setCurrentTime] = useState<Date | null>(null);
 
   useEffect(() => {
     // 載入事件
@@ -100,33 +99,30 @@ export default function Home() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
-      case 'medium': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20';
-      case 'low': return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20';
-      default: return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20';
-    }
-  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
-      {/* Header */}
-      <div className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-40">
-        <div className="max-w-lg mx-auto px-4 py-4">
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+      {/* Apple-style Header */}
+      <div className="material-thick sticky top-0 z-40 border-b border-opacity-20" style={{ borderColor: 'var(--separator)' }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-title-1" style={{ color: 'var(--foreground)' }}>
                 智能生活助手
               </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {/* 使用 suppressHydrationWarning 避免初次 Hydration 比對 */}
+              <p className="text-subheadline mt-1" style={{ color: 'var(--foreground-secondary)' }}>
                 <span suppressHydrationWarning>{todayStr}</span>
               </p>
             </div>
             <Link
               href="/calendar"
-              className="p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              className="interactive-scale btn-primary"
+              style={{
+                background: 'var(--accent)',
+                borderRadius: 'var(--radius-medium)',
+                padding: '12px',
+                minHeight: 'auto'
+              }}
             >
               <PlusIcon className="w-6 h-6" />
             </Link>
@@ -134,234 +130,379 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <CalendarDaysIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      {/* Main Content Container */}
+      <div className="max-w-6xl mx-auto px-6 py-8 lg:px-8">
+        {/* Desktop: 2-column grid, Mobile: 1-column */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Stats Cards - Apple Card Style */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="card-primary p-6 animate-fade-in" suppressHydrationWarning>
+                <div className="flex items-center space-x-4">
+                  <div 
+                    className="p-3 rounded-2xl"
+                    style={{ 
+                      background: 'rgba(0, 122, 255, 0.1)',
+                      color: 'var(--accent)'
+                    }}
+                  >
+                    <CalendarDaysIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-title-2" style={{ color: 'var(--foreground)' }} suppressHydrationWarning>
+                      {stats.upcomingEvents}
+                    </p>
+                    <p className="text-footnote" style={{ color: 'var(--foreground-secondary)' }}>
+                      即將到來
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" suppressHydrationWarning>{stats.upcomingEvents}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">即將到來</p>
+              
+              <div className="card-primary p-6 animate-fade-in" style={{ animationDelay: '0.1s' }} suppressHydrationWarning>
+                <div className="flex items-center space-x-4">
+                  <div 
+                    className="p-3 rounded-2xl"
+                    style={{ 
+                      background: 'rgba(52, 199, 89, 0.1)',
+                      color: 'var(--success)'
+                    }}
+                  >
+                    <CheckCircleIcon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-title-2" style={{ color: 'var(--foreground)' }} suppressHydrationWarning>
+                      {stats.completedTasks}
+                    </p>
+                    <p className="text-footnote" style={{ color: 'var(--foreground-secondary)' }}>
+                      已完成
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Quick Actions - Apple Style */}
+            <div className="card-primary animate-fade-in" style={{ animationDelay: '0.2s' }} suppressHydrationWarning>
+              <div className="p-6" style={{ borderBottom: '0.5px solid var(--separator)' }}>
+                <h2 className="text-title-3" style={{ color: 'var(--foreground)' }}>
+                  快速功能
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <Link
+                    href="/calendar"
+                    className="interactive-scale group p-6 rounded-2xl transition-all duration-200 hover:scale-105"
+                    style={{ 
+                      background: 'rgba(0, 122, 255, 0.08)',
+                      border: '0.5px solid rgba(0, 122, 255, 0.2)'
+                    }}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div 
+                        className="p-4 rounded-2xl"
+                        style={{ 
+                          background: 'var(--accent)',
+                          color: 'white'
+                        }}
+                      >
+                        <CalendarDaysIcon className="w-8 h-8" />
+                      </div>
+                      <span className="text-headline" style={{ color: 'var(--accent)' }}>
+                        新增事件
+                      </span>
+                    </div>
+                  </Link>
+                  
+                  <Link
+                    href="/photos"
+                    className="interactive-scale group p-6 rounded-2xl transition-all duration-200 hover:scale-105"
+                    style={{ 
+                      background: 'rgba(88, 86, 214, 0.08)',
+                      border: '0.5px solid rgba(88, 86, 214, 0.2)'
+                    }}
+                  >
+                    <div className="flex flex-col items-center text-center space-y-3">
+                      <div 
+                        className="p-4 rounded-2xl"
+                        style={{ 
+                          background: 'var(--accent-secondary)',
+                          color: 'white'
+                        }}
+                      >
+                        <PhotoIcon className="w-8 h-8" />
+                      </div>
+                      <span className="text-headline" style={{ color: 'var(--accent-secondary)' }}>
+                        查看相簿
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Task Countdown - Apple Style */}
+            {countdownData.tasks.length > 0 && (
+              <div className="card-primary animate-fade-in" style={{ animationDelay: '0.3s' }} suppressHydrationWarning>
+                <div className="p-6" style={{ borderBottom: '0.5px solid var(--separator)' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <CheckCircleIcon className="w-6 h-6" style={{ color: 'var(--accent)' }} />
+                      <h2 className="text-title-3" style={{ color: 'var(--foreground)' }}>
+                        代辦事項倒數
+                      </h2>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-footnote" style={{ color: 'var(--foreground-secondary)' }}>
+                        <span suppressHydrationWarning>{countdownData.stats.totalTasks}</span> 項任務
+                      </span>
+                      {countdownData.stats.urgentTasks > 0 && (
+                        <span 
+                          className="tag-destructive"
+                          style={{ fontSize: '11px', padding: '4px 8px' }}
+                        >
+                          <span suppressHydrationWarning>{countdownData.stats.urgentTasks}</span> 項緊急
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  {countdownData.tasks.slice(0, 3).map((task, index) => (
+                    <div 
+                      key={task.id} 
+                      className="card-secondary p-4 animate-slide-in-right"
+                      style={{ animationDelay: `${0.4 + index * 0.1}s` }}
+                      suppressHydrationWarning
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-headline mb-2" style={{ color: 'var(--foreground)' }}>
+                            {task.title}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            <span 
+                              className={`tag ${task.priority === 'high' ? 'tag-destructive' : 
+                                task.priority === 'medium' ? 'tag-warning' : 'tag-success'}`}
+                              style={{ fontSize: '11px' }}
+                            >
+                              {task.priority === 'high' ? '高優先' : task.priority === 'medium' ? '中優先' : '低優先'}
+                            </span>
+                            {task.category && (
+                              <span className="text-footnote" style={{ color: 'var(--foreground-tertiary)' }}>
+                                {task.category}
+                              </span>
+                            )}
+                            <span className="text-footnote" style={{ color: 'var(--foreground-tertiary)' }}>
+                              <span suppressHydrationWarning>
+                                {new Date(task.date_time).toLocaleDateString('zh-TW')}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right ml-4">
+                          <p 
+                            className="text-title-3" 
+                            style={{ color: 'var(--accent)' }} 
+                            suppressHydrationWarning
+                          >
+                            {formatCountdown(task)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
-          
-          <div className="bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+
+          {/* Right Column: Sidebar Content */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Milestones */}
+            {countdownData.milestones.length > 0 && (
+              <div className="card-primary animate-fade-in" style={{ animationDelay: '0.4s' }} suppressHydrationWarning>
+                <div className="p-4" style={{ borderBottom: '0.5px solid var(--separator)' }}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <ExclamationTriangleIcon 
+                        className="w-5 h-5" 
+                        style={{ color: 'var(--accent-secondary)' }} 
+                      />
+                      <h2 className="text-headline" style={{ color: 'var(--foreground)' }}>
+                        重大事件
+                      </h2>
+                    </div>
+                    <span className="text-caption-1" style={{ color: 'var(--foreground-tertiary)' }}>
+                      <span suppressHydrationWarning>{countdownData.stats.totalMilestones}</span> 個事件
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  {countdownData.milestones.slice(0, 3).map((milestone, index) => (
+                    <div 
+                      key={milestone.id} 
+                      className="card-secondary p-3 animate-slide-in-right"
+                      style={{ animationDelay: `${0.5 + index * 0.1}s` }}
+                      suppressHydrationWarning
+                    >
+                      <h3 className="text-subheadline mb-2" style={{ color: 'var(--foreground)' }}>
+                        {milestone.title}
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="tag tag-accent" style={{ fontSize: '10px' }}>
+                            重大事件
+                          </span>
+                          <span className="text-caption-2" style={{ color: 'var(--foreground-tertiary)' }}>
+                            <span suppressHydrationWarning>
+                              {new Date(milestone.date_time).toLocaleDateString('zh-TW')}
+                            </span>
+                          </span>
+                        </div>
+                        <p 
+                          className="text-callout font-semibold" 
+                          style={{ color: 'var(--accent-secondary)' }} 
+                          suppressHydrationWarning
+                        >
+                          {formatCountdown(milestone)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" suppressHydrationWarning>{stats.completedTasks}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">已完成</p>
+            )}
+
+            {/* Overdue Events */}
+            {overdueEvents.length > 0 && (
+              <div 
+                className="card-primary animate-fade-in" 
+                style={{ 
+                  animationDelay: '0.5s',
+                  borderColor: 'var(--destructive)',
+                  background: 'rgba(255, 59, 48, 0.03)'
+                }}
+                suppressHydrationWarning
+              >
+                <div className="p-4" style={{ borderBottom: '0.5px solid var(--destructive)' }}>
+                  <div className="flex items-center space-x-3">
+                    <ExclamationTriangleIcon 
+                      className="w-5 h-5" 
+                      style={{ color: 'var(--destructive)' }} 
+                    />
+                    <h2 className="text-headline" style={{ color: 'var(--destructive)' }}>
+                      逾期事項
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  {overdueEvents.slice(0, 3).map((event) => (
+                    <div 
+                      key={event.id} 
+                      className="card-secondary p-3"
+                      style={{ 
+                        background: 'rgba(255, 59, 48, 0.05)',
+                        border: '0.5px solid rgba(255, 59, 48, 0.2)'
+                      }}
+                    >
+                      <h3 className="text-subheadline mb-2" style={{ color: 'var(--destructive)' }}>
+                        {event.title}
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <span className="text-caption-2" style={{ color: 'var(--destructive)' }}>
+                          <span suppressHydrationWarning>
+                            {event.date.toLocaleDateString('zh-TW')}
+                          </span>
+                        </span>
+                        <span className="tag tag-destructive" style={{ fontSize: '10px' }}>
+                          {event.priority === 'high' ? '高' : event.priority === 'medium' ? '中' : '低'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Upcoming Events */}
+            {upcomingEvents.length > 0 && (
+              <div className="card-primary animate-fade-in" style={{ animationDelay: '0.6s' }} suppressHydrationWarning>
+                <div className="p-4" style={{ borderBottom: '0.5px solid var(--separator)' }}>
+                  <div className="flex items-center space-x-3">
+                    <CalendarDaysIcon 
+                      className="w-5 h-5" 
+                      style={{ color: 'var(--foreground-secondary)' }} 
+                    />
+                    <h2 className="text-headline" style={{ color: 'var(--foreground)' }}>
+                      即將到來
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  {upcomingEvents.map((event, index) => (
+                    <div 
+                      key={event.id} 
+                      className="card-secondary p-3 animate-slide-in-right"
+                      style={{ animationDelay: `${0.7 + index * 0.1}s` }}
+                      suppressHydrationWarning
+                    >
+                      <h3 className="text-subheadline mb-2" style={{ color: 'var(--foreground)' }}>
+                        {event.title}
+                      </h3>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span 
+                            className={`tag ${
+                              event.type === 'milestone' ? 'tag-accent' : 
+                              event.type === 'task' ? 'tag-success' : 'tag'
+                            }`}
+                            style={{ fontSize: '10px' }}
+                          >
+                            {event.type === 'milestone' ? '重大事件' : event.type === 'task' ? '任務' : '事件'}
+                          </span>
+                          <span className="text-caption-2" style={{ color: 'var(--foreground-tertiary)' }}>
+                            <span suppressHydrationWarning>
+                              {event.date.toLocaleDateString('zh-TW')}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Quick Access */}
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">快速功能</h2>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-3">
+        {/* Empty State - Apple Style */}
+        {countdownData.tasks.length === 0 && countdownData.milestones.length === 0 && upcomingEvents.length === 0 && overdueEvents.length === 0 && (
+          <div className="lg:col-span-3">
+            <div className="card-primary p-12 text-center animate-spring-up">
+              <div 
+                className="w-24 h-24 mx-auto mb-6 rounded-3xl flex items-center justify-center"
+                style={{ background: 'rgba(0, 122, 255, 0.1)' }}
+              >
+                <CalendarDaysIcon className="w-12 h-12" style={{ color: 'var(--accent)' }} />
+              </div>
+              <h3 className="text-title-3 mb-3" style={{ color: 'var(--foreground)' }}>
+                還沒有任何事件
+              </h3>
+              <p className="text-body mb-8" style={{ color: 'var(--foreground-secondary)' }}>
+                開始建立您的第一個任務或事件
+              </p>
               <Link
                 href="/calendar"
-                className="flex flex-col items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                className="btn-primary interactive-scale"
               >
-                <CalendarDaysIcon className="w-8 h-8 text-blue-600 dark:text-blue-400 mb-2" />
-                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">新增事件</span>
-              </Link>
-              <Link
-                href="/photos"
-                className="flex flex-col items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
-              >
-                <PhotoIcon className="w-8 h-8 text-purple-600 dark:text-purple-400 mb-2" />
-                <span className="text-sm font-medium text-purple-900 dark:text-purple-100">查看相簿</span>
+                <PlusIcon className="w-5 h-5" />
+                新增事件
               </Link>
             </div>
-          </div>
-        </div>
-
-        {/* 代辦事項倒數 */}
-        {countdownData.tasks.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CheckCircleIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">代辦事項倒數</h2>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    <span suppressHydrationWarning>{countdownData.stats.totalTasks}</span> 項任務
-                  </span>
-                  {countdownData.stats.urgentTasks > 0 && (
-                    <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs rounded-full">
-                      <span suppressHydrationWarning>{countdownData.stats.urgentTasks}</span> 項緊急
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {countdownData.tasks.slice(0, 3).map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{task.title}</h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                        {task.priority === 'high' ? '高優先' : task.priority === 'medium' ? '中優先' : '低優先'}
-                      </span>
-                      {task.category && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {task.category}
-                        </span>
-                      )}
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        <span suppressHydrationWarning>{new Date(task.date_time).toLocaleDateString('zh-TW')}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400" suppressHydrationWarning>
-                      {formatCountdown(task)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 重大事件倒數 */}
-        {countdownData.milestones.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <ExclamationTriangleIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">重大事件倒數</h2>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    <span suppressHydrationWarning>{countdownData.stats.totalMilestones}</span> 個事件
-                  </span>
-                  {countdownData.stats.urgentMilestones > 0 && (
-                    <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-xs rounded-full">
-                      <span suppressHydrationWarning>{countdownData.stats.urgentMilestones}</span> 個緊急
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {countdownData.milestones.slice(0, 3).map((milestone) => (
-                <div key={milestone.id} className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{milestone.title}</h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(milestone.priority)}`}>
-                        重大事件
-                      </span>
-                      {milestone.category && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          {milestone.category}
-                        </span>
-                      )}
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        <span suppressHydrationWarning>{new Date(milestone.date_time).toLocaleDateString('zh-TW')}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400" suppressHydrationWarning>
-                      {formatCountdown(milestone)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Overdue Events */}
-        {overdueEvents.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-red-200 dark:border-red-800">
-            <div className="p-4 border-b border-red-200 dark:border-red-800">
-              <div className="flex items-center space-x-2">
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <h2 className="text-lg font-semibold text-red-900 dark:text-red-100">逾期事項</h2>
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {overdueEvents.slice(0, 3).map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-red-900 dark:text-red-100">{event.title}</h3>
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                      <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(event.priority)}`}>
-                    {event.priority === 'high' ? '高' : event.priority === 'medium' ? '中' : '低'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Upcoming Events */}
-        {upcomingEvents.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-              <div className="flex items-center space-x-2">
-                <CalendarDaysIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">即將到來</h2>
-              </div>
-            </div>
-            <div className="p-4 space-y-3">
-              {upcomingEvents.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{event.title}</h3>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(event.priority)}`}>
-                        {event.type === 'milestone' ? '重大事件' : event.type === 'task' ? '任務' : '事件'}
-                      </span>
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {countdownData.tasks.length === 0 && countdownData.milestones.length === 0 && upcomingEvents.length === 0 && overdueEvents.length === 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center">
-            <CalendarDaysIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              還沒有任何事件
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              開始建立您的第一個任務或事件
-            </p>
-            <Link
-              href="/calendar"
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <PlusIcon className="w-4 h-4 mr-2" />
-              新增事件
-            </Link>
           </div>
         )}
       </div>

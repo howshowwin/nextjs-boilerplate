@@ -29,7 +29,6 @@ export default function CalendarPage() {
     deleteEvent, 
     toggleEventCompletion,
     getEventsByDate,
-    getEventsByMonth,
     searchEvents,
     filter,
     setFilter
@@ -86,6 +85,14 @@ export default function CalendarPage() {
     location: '',
   });
 
+  // 將 Date 對象轉換為本地日期字串 (YYYY-MM-DD)
+  const dateToLocalString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // 重置表單
   const resetForm = () => {
     setFormData({
@@ -106,7 +113,7 @@ export default function CalendarPage() {
   const openAddEventModal = (date?: Date) => {
     resetForm();
     if (date) {
-      setFormData(prev => ({ ...prev, date: date.toISOString().split('T')[0] }));
+      setFormData(prev => ({ ...prev, date: dateToLocalString(date) }));
     }
     setShowEventModal(true);
   };
@@ -117,7 +124,7 @@ export default function CalendarPage() {
     setFormData({
       title: event.title,
       description: event.description || '',
-      date: event.date.toISOString().split('T')[0],
+      date: dateToLocalString(event.date),
       startTime: event.startTime || '',
       endTime: event.endTime || '',
       type: event.type,
@@ -174,7 +181,6 @@ export default function CalendarPage() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
     
@@ -216,14 +222,6 @@ export default function CalendarPage() {
   const calendarDays = getCalendarDays();
   const filteredEvents = getFilteredEvents();
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
-    }
-  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -235,59 +233,90 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
-      {/* Header */}
-      <div className="bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800/50 sticky top-0 z-40">
-        <div className="max-w-lg mx-auto px-4 py-4">
+    <div className="min-h-screen" style={{ background: 'var(--background)' }}>
+      {/* Apple-style Header */}
+      <div className="material-thick sticky top-0 z-40 border-b border-opacity-20" style={{ borderColor: 'var(--separator)' }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 lg:px-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">行事曆</h1>
-            <div className="flex items-center space-x-2">
+            <h1 className="text-title-1" style={{ color: 'var(--foreground)' }}>
+              行事曆
+            </h1>
+            <div className="flex items-center space-x-3">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="interactive-scale p-3 rounded-2xl transition-all duration-200"
+                style={{ 
+                  background: showFilters ? 'var(--accent)' : 'var(--surface-secondary)',
+                  color: showFilters ? 'white' : 'var(--foreground-secondary)'
+                }}
               >
                 <FunnelIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={() => openAddEventModal()}
-                className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                className="interactive-scale btn-primary"
+                style={{ padding: '12px', minHeight: 'auto' }}
               >
                 <PlusIcon className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* 搜尋欄 */}
+          {/* Apple Search Bar */}
           <div className="relative mb-4">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="搜尋事件..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
-            />
+            <div 
+              className="relative flex items-center rounded-2xl transition-all duration-200"
+              style={{ 
+                background: 'var(--surface-secondary)',
+                border: '0.5px solid var(--separator)'
+              }}
+            >
+              <MagnifyingGlassIcon 
+                className="w-5 h-5 ml-4" 
+                style={{ color: 'var(--foreground-tertiary)' }} 
+              />
+              <input
+                type="text"
+                placeholder="搜尋事件..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent px-3 py-3 text-body focus:outline-none"
+                style={{ 
+                  color: 'var(--foreground)',
+                  fontFamily: 'var(--font-system)'
+                }}
+              />
+            </div>
           </div>
 
-          {/* 檢視模式切換 */}
-          <div className="flex items-center space-x-2">
+          {/* Apple Segmented Control */}
+          <div 
+            className="flex rounded-2xl p-1"
+            style={{ background: 'var(--surface-secondary)' }}
+          >
             <button
               onClick={() => setViewMode('month')}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                viewMode === 'month'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              className={`flex-1 px-4 py-2 rounded-xl text-subheadline font-medium transition-all duration-200 ${
+                viewMode === 'month' ? 'interactive-scale' : ''
               }`}
+              style={{
+                background: viewMode === 'month' ? 'var(--surface)' : 'transparent',
+                color: viewMode === 'month' ? 'var(--foreground)' : 'var(--foreground-secondary)',
+                boxShadow: viewMode === 'month' ? 'var(--shadow-1)' : 'none'
+              }}
             >
               月曆
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                viewMode === 'list'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+              className={`flex-1 px-4 py-2 rounded-xl text-subheadline font-medium transition-all duration-200 ${
+                viewMode === 'list' ? 'interactive-scale' : ''
               }`}
+              style={{
+                background: viewMode === 'list' ? 'var(--surface)' : 'transparent',
+                color: viewMode === 'list' ? 'var(--foreground)' : 'var(--foreground-secondary)',
+                boxShadow: viewMode === 'list' ? 'var(--shadow-1)' : 'none'
+              }}
             >
               列表
             </button>
@@ -295,100 +324,158 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 篩選器 */}
+      {/* Apple-style Filters */}
       {showFilters && (
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4">
-          <div className="max-w-lg mx-auto space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">類型</label>
-              <div className="flex flex-wrap gap-2">
-                {['task', 'event', 'milestone'].map(type => (
-                  <button
-                    key={type}
-                    onClick={() => {
-                      const newTypes = filter.types.includes(type as any)
-                        ? filter.types.filter(t => t !== type)
-                        : [...filter.types, type as any];
-                      setFilter({ types: newTypes });
-                    }}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      filter.types.includes(type as any)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
-                    }`}
-                  >
-                    {type === 'task' ? '任務' : type === 'event' ? '事件' : '重大事件'}
-                  </button>
-                ))}
+        <div 
+          className="material-regular border-b border-opacity-20" 
+          style={{ borderColor: 'var(--separator)' }}
+        >
+          <div className="max-w-6xl mx-auto px-6 py-6 lg:px-8">
+            <div className="space-y-6">
+              {/* 類型篩選 */}
+              <div>
+                <label className="text-headline mb-4 block" style={{ color: 'var(--foreground)' }}>
+                  事件類型
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {['task', 'event', 'milestone'].map(type => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        const newTypes = filter.types.includes(type as any)
+                          ? filter.types.filter(t => t !== type)
+                          : [...filter.types, type as any];
+                        setFilter({ types: newTypes });
+                      }}
+                      className={`interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200 ${
+                        filter.types.includes(type as any)
+                          ? 'tag-accent'
+                          : 'tag'
+                      }`}
+                    >
+                      {type === 'task' ? '任務' : type === 'event' ? '事件' : '重大事件'}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">優先順序</label>
-              <div className="flex flex-wrap gap-2">
-                {['high', 'medium', 'low'].map(priority => (
+              {/* 優先順序篩選 */}
+              <div>
+                <label className="text-headline mb-4 block" style={{ color: 'var(--foreground)' }}>
+                  優先順序
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {['high', 'medium', 'low'].map(priority => (
+                    <button
+                      key={priority}
+                      onClick={() => {
+                        const newPriorities = filter.priorities.includes(priority as any)
+                          ? filter.priorities.filter(p => p !== priority)
+                          : [...filter.priorities, priority as any];
+                        setFilter({ priorities: newPriorities });
+                      }}
+                      className={`interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200 ${
+                        filter.priorities.includes(priority as any)
+                          ? (priority === 'high' ? 'tag-destructive' : 
+                             priority === 'medium' ? 'tag-warning' : 'tag-success')
+                          : 'tag'
+                      }`}
+                    >
+                      {priority === 'high' ? '高優先' : priority === 'medium' ? '中優先' : '低優先'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 完成狀態篩選 */}
+              <div>
+                <label className="text-headline mb-4 block" style={{ color: 'var(--foreground)' }}>
+                  完成狀態
+                </label>
+                <div className="flex gap-3">
                   <button
-                    key={priority}
-                    onClick={() => {
-                      const newPriorities = filter.priorities.includes(priority as any)
-                        ? filter.priorities.filter(p => p !== priority)
-                        : [...filter.priorities, priority as any];
-                      setFilter({ priorities: newPriorities });
-                    }}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                      filter.priorities.includes(priority as any)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                    onClick={() => setFilter({ completed: undefined })}
+                    className={`interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200 ${
+                      filter.completed === undefined ? 'tag-accent' : 'tag'
                     }`}
                   >
-                    {priority === 'high' ? '高' : priority === 'medium' ? '中' : '低'}
+                    全部
                   </button>
-                ))}
+                  <button
+                    onClick={() => setFilter({ completed: false })}
+                    className={`interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200 ${
+                      filter.completed === false ? 'tag-warning' : 'tag'
+                    }`}
+                  >
+                    未完成
+                  </button>
+                  <button
+                    onClick={() => setFilter({ completed: true })}
+                    className={`interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200 ${
+                      filter.completed === true ? 'tag-success' : 'tag'
+                    }`}
+                  >
+                    已完成
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-lg mx-auto px-4 py-6">
+      {/* Main Content Container */}
+      <div className="max-w-6xl mx-auto px-6 py-8 lg:px-8">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" style={{ borderColor: 'var(--accent)' }}></div>
           </div>
         ) : viewMode === 'month' ? (
-          <>
-            {/* 月曆導航 */}
-            <div className="flex items-center justify-between mb-6">
+          <div className="card-primary p-6 animate-fade-in" suppressHydrationWarning>
+            {/* Apple-style Month Navigation */}
+            <div className="flex items-center justify-between mb-8">
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                className="p-2 rounded-lg bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="interactive-scale p-3 rounded-2xl transition-all duration-200"
+                style={{ 
+                  background: 'var(--surface-secondary)',
+                  color: 'var(--foreground-secondary)'
+                }}
               >
-                <ChevronLeftIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <ChevronLeftIcon className="w-6 h-6" />
               </button>
               
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-title-2" style={{ color: 'var(--foreground)' }}>
                 <span suppressHydrationWarning>{currentMonthStr}</span>
               </h2>
               
               <button
                 onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                className="p-2 rounded-lg bg-white dark:bg-gray-900 shadow-sm border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="interactive-scale p-3 rounded-2xl transition-all duration-200"
+                style={{ 
+                  background: 'var(--surface-secondary)',
+                  color: 'var(--foreground-secondary)'
+                }}
               >
-                <ChevronRightIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <ChevronRightIcon className="w-6 h-6" />
               </button>
             </div>
 
-            {/* 星期標題 */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            {/* Apple-style Weekday Headers */}
+            <div className="grid grid-cols-7 gap-2 mb-4">
               {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
+                <div 
+                  key={day} 
+                  className="text-center text-footnote font-semibold py-3" 
+                  style={{ color: 'var(--foreground-tertiary)' }}
+                >
                   {day}
                 </div>
               ))}
             </div>
 
-            {/* 月曆格子 */}
-            <div className="grid grid-cols-7 gap-1" suppressHydrationWarning>
+            {/* Apple-style Calendar Grid */}
+            <div className="grid grid-cols-7 gap-2" suppressHydrationWarning>
               {calendarDays.map((day, index) => {
                 const dayEvents = getDayEvents(day);
                 const isCurrentMonth = day.getMonth() === currentDate.getMonth();
@@ -405,22 +492,37 @@ export default function CalendarPage() {
                       }
                     }}
                     className={`
-                      relative min-h-[60px] p-1 rounded-lg cursor-pointer transition-colors
-                      ${isCurrentMonth ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}
-                      ${isToday ? 'ring-2 ring-blue-500' : ''}
-                      ${isSelected ? 'ring-2 ring-blue-300' : ''}
-                      hover:bg-gray-50 dark:hover:bg-gray-800
-                      border border-gray-200 dark:border-gray-700
+                      relative min-h-[80px] p-3 rounded-2xl cursor-pointer transition-all duration-200
+                      ${isCurrentMonth 
+                        ? 'hover:scale-[1.02] interactive-scale' 
+                        : 'opacity-50'
+                      }
+                      ${isSelected ? 'ring-2' : ''}
                     `}
+                    style={{ 
+                      background: isCurrentMonth 
+                        ? (isToday ? 'rgba(0, 122, 255, 0.1)' : 'var(--surface-secondary)')
+                        : 'transparent',
+                      border: isToday ? '1px solid var(--accent)' : '0.5px solid var(--separator)',
+                      '--tw-ring-color': isSelected ? 'var(--accent)' : 'transparent'
+                    } as any}
                   >
-                    <div className={`text-sm font-medium ${
-                      isCurrentMonth ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-600'
-                    }`}>
+                    <div 
+                      className={`text-callout font-semibold mb-2 ${
+                        isToday ? 'w-7 h-7 rounded-full flex items-center justify-center text-white' : ''
+                      }`}
+                      style={{ 
+                        color: isCurrentMonth 
+                          ? (isToday ? 'white' : 'var(--foreground)') 
+                          : 'var(--foreground-tertiary)',
+                        background: isToday ? 'var(--accent)' : 'transparent'
+                      }}
+                    >
                       {day.getDate()}
                     </div>
                     
-                    {/* 事件指示器 */}
-                    <div className="space-y-1 mt-1">
+                    {/* Apple-style Event Indicators */}
+                    <div className="space-y-1">
                       {isMounted && dayEvents.slice(0, 2).map((event, eventIndex) => (
                         <div
                           key={eventIndex}
@@ -429,21 +531,55 @@ export default function CalendarPage() {
                             openEditEventModal(event);
                           }}
                           className={`
-                            flex items-center space-x-1 px-1 py-0.5 rounded text-xs truncate
-                            ${event.completed ? 'opacity-50 line-through' : ''}
-                            ${event.type === 'milestone' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
-                              event.type === 'event' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                              'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'}
+                            flex items-center space-x-2 px-2 py-1 rounded-lg text-caption-1 truncate transition-all duration-200
+                            hover:scale-105 cursor-pointer
+                            ${event.completed ? 'opacity-60 line-through' : ''}
                           `}
+                          style={{
+                            background: event.type === 'milestone' 
+                              ? 'rgba(88, 86, 214, 0.1)' 
+                              : event.type === 'event' 
+                              ? 'rgba(0, 122, 255, 0.1)' 
+                              : 'rgba(52, 199, 89, 0.1)',
+                            color: event.type === 'milestone' 
+                              ? 'var(--accent-secondary)' 
+                              : event.type === 'event' 
+                              ? 'var(--accent)' 
+                              : 'var(--success)',
+                            border: `0.5px solid ${
+                              event.type === 'milestone' 
+                                ? 'rgba(88, 86, 214, 0.3)' 
+                                : event.type === 'event' 
+                                ? 'rgba(0, 122, 255, 0.3)' 
+                                : 'rgba(52, 199, 89, 0.3)'
+                            }`
+                          }}
                         >
-                          {getTypeIcon(event.type)}
-                          <span className="truncate">{event.title}</span>
-                          <div className={`w-2 h-2 rounded-full ${getPriorityColor(event.priority)}`} />
+                          <div className="flex items-center space-x-1 flex-1 min-w-0">
+                            {getTypeIcon(event.type)}
+                            <span className="truncate font-medium">{event.title}</span>
+                          </div>
+                          <div 
+                            className="w-2 h-2 rounded-full flex-shrink-0" 
+                            style={{
+                              background: event.priority === 'high' 
+                                ? 'var(--destructive)' 
+                                : event.priority === 'medium' 
+                                ? 'var(--warning)' 
+                                : 'var(--success)'
+                            }}
+                          />
                         </div>
                       ))}
                       {isMounted && dayEvents.length > 2 && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
-                          +{dayEvents.length - 2} 更多
+                        <div 
+                          className="text-caption-2 px-2 py-1 rounded-lg" 
+                          style={{ 
+                            color: 'var(--foreground-tertiary)',
+                            background: 'var(--surface-tertiary)'
+                          }}
+                        >
+                          +{dayEvents.length - 2} 個事件
                         </div>
                       )}
                     </div>
@@ -451,119 +587,155 @@ export default function CalendarPage() {
                 );
               })}
             </div>
-          </>
+          </div>
         ) : (
-          // 列表檢視
-          <div className="space-y-4" suppressHydrationWarning>
+          // Apple-style List View
+          <div className="space-y-4 animate-fade-in" suppressHydrationWarning>
             {!isMounted ? (
-              <div className="text-center py-8">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mx-auto mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mx-auto"></div>
+              <div className="card-primary p-12 text-center animate-pulse">
+                <div className="space-y-3">
+                  <div 
+                    className="h-4 rounded-2xl w-1/2 mx-auto" 
+                    style={{ background: 'var(--surface-secondary)' }}
+                  ></div>
+                  <div 
+                    className="h-3 rounded-2xl w-1/3 mx-auto" 
+                    style={{ background: 'var(--surface-secondary)' }}
+                  ></div>
                 </div>
               </div>
             ) : filteredEvents.length === 0 ? (
-              <div className="text-center py-8">
-                <CalendarDaysIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">沒有找到符合條件的事件</p>
+              <div className="card-primary p-12 text-center animate-spring-up">
+                <div 
+                  className="w-16 h-16 mx-auto mb-6 rounded-3xl flex items-center justify-center"
+                  style={{ background: 'rgba(0, 122, 255, 0.1)' }}
+                >
+                  <CalendarDaysIcon className="w-8 h-8" style={{ color: 'var(--accent)' }} />
+                </div>
+                <h3 className="text-title-3 mb-2" style={{ color: 'var(--foreground)' }}>
+                  沒有找到符合條件的事件
+                </h3>
+                <p className="text-body" style={{ color: 'var(--foreground-secondary)' }}>
+                  嘗試調整篩選條件或新增事件
+                </p>
               </div>
             ) : (
-              isMounted && filteredEvents.map((event) => (
+              isMounted && filteredEvents.map((event, index) => (
                 <div
                   key={event.id}
                   className={`
-                    bg-white dark:bg-gray-900 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-800
+                    card-primary p-6 animate-slide-in-right
                     ${event.completed ? 'opacity-75' : ''}
                   `}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                  suppressHydrationWarning
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
+                      <div className="flex items-center space-x-3 mb-3">
                         <button
                           onClick={() => toggleEventCompletion(event.id)}
                           className={`
-                            w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors
+                            w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200 interactive-scale
                             ${event.completed 
-                              ? 'bg-green-500 border-green-500 text-white' 
-                              : 'border-gray-300 dark:border-gray-600 hover:border-green-500'
+                              ? 'border-none text-white' 
+                              : 'hover:scale-110'
                             }
                           `}
+                          style={{
+                            background: event.completed ? 'var(--success)' : 'transparent',
+                            borderColor: event.completed ? 'var(--success)' : 'var(--separator)'
+                          }}
                         >
-                          {event.completed && <CheckCircleIconSolid className="w-3 h-3" />}
+                          {event.completed && <CheckCircleIconSolid className="w-4 h-4" />}
                         </button>
-                        <h3 className={`font-medium text-gray-900 dark:text-white ${
-                          event.completed ? 'line-through' : ''
-                        }`}>
+                        <h3 className={`text-headline ${event.completed ? 'line-through' : ''}`}
+                            style={{ color: 'var(--foreground)' }}>
                           {event.title}
                         </h3>
-                        <div className={`w-2 h-2 rounded-full ${getPriorityColor(event.priority)}`} />
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{
+                            background: event.priority === 'high' 
+                              ? 'var(--destructive)' 
+                              : event.priority === 'medium' 
+                              ? 'var(--warning)' 
+                              : 'var(--success)'
+                          }}
+                        />
                       </div>
                       
                       {event.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        <p className="text-subheadline mb-3" style={{ color: 'var(--foreground-secondary)' }}>
                           {event.description}
                         </p>
                       )}
                       
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                        <div className="flex items-center space-x-1">
+                      <div className="flex items-center flex-wrap gap-4 text-footnote mb-3" style={{ color: 'var(--foreground-tertiary)' }}>
+                        <div className="flex items-center space-x-2">
                           <CalendarDaysIcon className="w-4 h-4" />
                           <span suppressHydrationWarning>{event.date.toLocaleDateString('zh-TW')}</span>
                         </div>
                         
                         {event.startTime && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-2">
                             <ClockIcon className="w-4 h-4" />
                             <span>{event.startTime}</span>
                           </div>
                         )}
                         
                         {event.location && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-2">
                             <MapPinIcon className="w-4 h-4" />
-                            <span>{event.location}</span>
+                            <span className="truncate max-w-32">{event.location}</span>
                           </div>
                         )}
                         
                         {event.category && (
-                          <div className="flex items-center space-x-1">
+                          <div className="flex items-center space-x-2">
                             <TagIcon className="w-4 h-4" />
                             <span>{event.category}</span>
                           </div>
                         )}
                       </div>
                       
-                      <div className="flex items-center space-x-2 mt-2">
+                      <div className="flex items-center space-x-3">
                         <span className={`
-                          px-2 py-1 rounded-full text-xs font-medium
-                          ${event.type === 'milestone' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' :
-                            event.type === 'event' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
-                            'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'}
+                          tag ${event.type === 'milestone' ? 'tag-accent' :
+                                event.type === 'event' ? 'tag' :
+                                'tag-success'}
                         `}>
                           {event.type === 'milestone' ? '重大事件' : event.type === 'event' ? '事件' : '任務'}
                         </span>
                         
                         <span className={`
-                          px-2 py-1 rounded-full text-xs font-medium
-                          ${event.priority === 'high' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' :
-                            event.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
-                            'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'}
+                          tag ${event.priority === 'high' ? 'tag-destructive' :
+                                event.priority === 'medium' ? 'tag-warning' :
+                                'tag-success'}
                         `}>
                           {event.priority === 'high' ? '高優先' : event.priority === 'medium' ? '中優先' : '低優先'}
                         </span>
                       </div>
                     </div>
                     
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-3 ml-4">
                       <button
                         onClick={() => openEditEventModal(event)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
+                        className="interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200"
+                        style={{ 
+                          background: 'var(--accent)',
+                          color: 'white'
+                        }}
                       >
                         編輯
                       </button>
                       <button
                         onClick={() => handleDeleteEvent(event.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm font-medium"
+                        className="interactive-scale px-4 py-2 rounded-2xl text-callout font-medium transition-all duration-200"
+                        style={{ 
+                          background: 'var(--destructive)',
+                          color: 'white'
+                        }}
                       >
                         刪除
                       </button>
@@ -576,96 +748,99 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* 事件編輯對話框 */}
+      {/* Apple-style Event Modal */}
       {showEventModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-6">
+          <div className="modal-content w-full max-w-lg animate-spring-up">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-title-2" style={{ color: 'var(--foreground)' }}>
                   {editingEvent ? '編輯事件' : '新增事件'}
                 </h3>
                 <button
                   onClick={() => setShowEventModal(false)}
-                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  className="interactive-scale p-3 rounded-2xl transition-all duration-200"
+                  style={{ 
+                    background: 'var(--surface-secondary)',
+                    color: 'var(--foreground-secondary)'
+                  }}
                 >
-                  <XMarkIcon className="w-5 h-5" />
+                  <XMarkIcon className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                     標題 *
                   </label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="input-apple w-full"
                     placeholder="輸入事件標題"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                     描述
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    rows={3}
+                    className="input-apple w-full min-h-[100px] resize-none"
                     placeholder="輸入事件描述"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                     日期 *
                   </label>
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="input-apple w-full"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                       開始時間
                     </label>
                     <input
                       type="time"
                       value={formData.startTime}
                       onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="input-apple w-full"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                       結束時間
                     </label>
                     <input
                       type="time"
                       value={formData.endTime}
                       onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="input-apple w-full"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                       類型
                     </label>
                     <select
                       value={formData.type}
                       onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="input-apple w-full"
                     >
                       <option value="task">任務</option>
                       <option value="event">事件</option>
@@ -673,61 +848,61 @@ export default function CalendarPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                       優先順序
                     </label>
                     <select
                       value={formData.priority}
                       onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="input-apple w-full"
                     >
-                      <option value="low">低</option>
-                      <option value="medium">中</option>
-                      <option value="high">高</option>
+                      <option value="low">低優先</option>
+                      <option value="medium">中優先</option>
+                      <option value="high">高優先</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                     分類
                   </label>
                   <input
                     type="text"
                     value={formData.category}
                     onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="input-apple w-full"
                     placeholder="例如：工作、個人、學習"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="text-headline mb-3 block" style={{ color: 'var(--foreground)' }}>
                     地點
                   </label>
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="input-apple w-full"
                     placeholder="輸入地點"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end space-x-3 mt-6">
+              <div className="flex items-center justify-end space-x-4 mt-8">
                 <button
                   onClick={() => setShowEventModal(false)}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
+                  className="btn-secondary interactive-scale"
                 >
                   取消
                 </button>
                 <button
                   onClick={handleSaveEvent}
                   disabled={!formData.title.trim() || !formData.date}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                  className="btn-primary interactive-scale disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingEvent ? '更新' : '新增'}
+                  {editingEvent ? '更新事件' : '新增事件'}
                 </button>
               </div>
             </div>
